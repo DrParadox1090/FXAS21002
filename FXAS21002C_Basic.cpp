@@ -1,6 +1,6 @@
+#include <i2cdevice.h>
 #include "FXAS21002C_Basic.h"
 #include "FXAS21002C_Registers.h"
-#include "EEPROM.h"
 
 //Constructor
 FXAS21002CBasic::FXAS21002CBasic(byte address, TwoWire *wire)
@@ -122,22 +122,19 @@ void FXAS21002CBasic::changeRange(int fsr)
 
 }
 
-//Load calibration constants from eeprom
-void FXAS21002CBasic::loadCalibrationData(byte eeprom_address){
-     byte temp[4*3];
-    for (int i = 0; i < 4*3; i++)
-    {
-        temp[i] = EEPROM.read(eeprom_address + i);
-    }
-    memcpy(gyro_offset_,temp,4*3);
-
-}
 //update angular acceleration
 void FXAS21002CBasic::updateGyroData(float* gyro_data)
 { 
-    gyro_data[0]  = (readShortIntFromReg(OUT_X_MSB_REG)*sensitivity) - gyro_offset_[0];
-    gyro_data[1]  = (readShortIntFromReg(OUT_Y_MSB_REG)*sensitivity) - gyro_offset_[1]; 
-    gyro_data[2]  = (readShortIntFromReg(OUT_Z_MSB_REG)*sensitivity) - gyro_offset_[2];
+    float temp[3];
+    temp[0] = (readShortIntFromReg(OUT_X_MSB_REG)*sensitivity) ;
+    temp[1] = (readShortIntFromReg(OUT_Y_MSB_REG)*sensitivity) ;
+    temp[2] = (readShortIntFromReg(OUT_Z_MSB_REG)*sensitivity) ;
+
+    for(int i = 0 ; i < 3 ; i ++){
+        if((gyro_data[i] - temp[i] > 0.5) || (gyro_data[i] - temp[i] < -0.5)){
+            gyro_data[i] = temp[i] * DEG_TO_RAD - gyro_offset_[i];
+        }
+    }
     
     return ;
 
